@@ -234,6 +234,10 @@ eval/run_holdout_eval.py     Mehr-Arm-Vergleich mit allen Metriken
 eval/structural_slop.py      Nominalstil, Passiv, Satzbau
 configs/antislop_prompt.md   der System-Prompt, in allen Armen derselbe
 configs/de_extra_bans.json   handkuratierte Banlist
+configs/copy_prompts/        das Prompt-Grid: 15 erfundene Musterfirmen aus
+                             15 Branchen plus Raven, dazu Ton- und Laengen-
+                             Achsen. Daraus entsteht der Text, aus dem der
+                             Spread-Diskriminator die Floskeln zieht.
 docs/stufe-0-baseline.md     Abnahme-Dokumentation des Korpus
 docs/SERVING.md              Deploy auf einem vLLM-Endpoint
 JOURNEY.md                   Projekttagebuch, sechs Sessions, alle Sackgassen

@@ -4,7 +4,7 @@
 
 Gebaut auf einem Lineal aus 860 Millionen Zeichen menschlichem Deutsch, einem Diskriminator, der Fachbegriff von Floskel trennt, und dem ersten deutschen FTPO-Finetune.
 
-Dazu kommt das Instrument: eine Vierfeld-Messung, die Finetune und System-Prompt einzeln und zusammen prüft. Sie macht den Unterschied sichtbar zwischen „die Zahl wird besser“ und „der Text wird besser“. Die meisten Veröffentlichungen melden eine Zahl gegen eine Baseline und können diesen Unterschied gar nicht sehen.
+Dazu kommt das Instrument. Eine Vierfeld-Messung prüft Finetune und System-Prompt einzeln und zusammen. Sie macht den Unterschied sichtbar zwischen „die Zahl wird besser“ und „der Text wird besser“. Die meisten Veröffentlichungen melden eine Zahl gegen eine Baseline und können diesen Unterschied gar nicht sehen.
 
 [![License: Apache 2.0](https://img.shields.io/badge/Code-Apache%202.0-blue.svg)](./LICENSE)
 [![Model](https://img.shields.io/badge/%F0%9F%A4%97%20Modell-gemma--3--12b--it--antislop--de-yellow)](https://huggingface.co/PhilflowIO/gemma-3-12b-it-antislop-de)

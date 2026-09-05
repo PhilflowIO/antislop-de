@@ -4,6 +4,8 @@
 
 Gebaut auf einem Lineal aus 860 Millionen Zeichen menschlichem Deutsch, einem Diskriminator, der Fachbegriff von Floskel trennt, und dem ersten deutschen FTPO-Finetune.
 
+Dazu kommt das Instrument: eine Vierfeld-Messung, die Finetune und System-Prompt einzeln und zusammen prüft. Sie macht den Unterschied sichtbar zwischen „die Zahl wird besser“ und „der Text wird besser“. Die meisten Veröffentlichungen melden eine Zahl gegen eine Baseline und können diesen Unterschied gar nicht sehen.
+
 [![License: Apache 2.0](https://img.shields.io/badge/Code-Apache%202.0-blue.svg)](./LICENSE)
 [![Model](https://img.shields.io/badge/%F0%9F%A4%97%20Modell-gemma--3--12b--it--antislop--de-yellow)](https://huggingface.co/PhilflowIO/gemma-3-12b-it-antislop-de)
 [![Base](https://img.shields.io/badge/Basis-gemma--3--12b--it-lightgrey)](https://huggingface.co/google/gemma-3-12b-it)
@@ -12,9 +14,11 @@ Gebaut auf einem Lineal aus 860 Millionen Zeichen menschlichem Deutsch, einem Di
 
 ## Schnellstart
 
-### Weg 1: der Prompt (empfohlen, kostenlos)
+Zwei Wege führen zu weniger Slop, und sie beantworten verschiedene Fragen. Der Prompt allein liefert den Text, den die Gutachter am häufigsten als besten wählen. Modell und Prompt zusammen liefern die stärkste Phrasenunterdrückung, brauchen aber eine Redaktionsrunde. Beide Zahlen stehen unter [Was die Messung zeigt](#was-die-messung-zeigt).
 
-Nimm ein beliebiges Modell und häng diesen System-Prompt davor. Er gewinnt in unserer Messung gegen den Finetune.
+### Weg 1: der Prompt allein (kostenlos, keine GPU)
+
+Nimm ein beliebiges Modell und häng diesen System-Prompt davor. Er senkt die Banlist-Treffer von 38,64 auf 21,04 je 1.000 Tokens und ist der Arm mit den besten Lesetest-Bewertungen.
 
 ```
 Du bist ein erfahrener deutscher Werbetexter. Gib ausschließlich den fertigen
@@ -27,7 +31,9 @@ Sätze, konkret sagen, was das Produkt tut.
 
 Volle Fassung samt Inferenz-Einstellungen: [`configs/antislop_prompt.md`](./configs/antislop_prompt.md)
 
-### Weg 2: das Modell
+### Weg 2: Modell und Prompt zusammen (stärkste Phrasenunterdrückung)
+
+Denselben System-Prompt aus Weg 1 davorhängen. Ohne ihn produziert das Modell seine eigenen antrainierten Tics.
 
 ```python
 from transformers import AutoModelForImageTextToText, AutoTokenizer
@@ -38,7 +44,7 @@ model = AutoModelForImageTextToText.from_pretrained(
     torch_dtype="bfloat16", device_map="cuda")
 ```
 
-`temperature=0.7`. Produktfakten faktentreu in den User-Prompt geben, sonst erfindet das Modell Positionierung.
+`temperature=0.7`. Produktfakten faktentreu in den User-Prompt geben, sonst erfindet das Modell Positionierung. Diese Kombination erreicht 6,27 Banlist-Treffer je 1.000 Tokens, den besten Wert der Messung, und braucht danach eine menschliche Redaktion für Satzbau und Grammatik.
 
 ### Weg 3: die Pipeline neu fahren
 
@@ -76,7 +82,7 @@ Für Englisch gibt es eine Anti-Slop-Werkzeugkette. Für Deutsch gab es nichts. 
 | **Nominalstil und Passiv messen** | nicht vorhanden | sechs spaCy-Metriken gegen eine menschliche Referenz |
 | **Deutsche Slop-Banlist** | nicht vorhanden | 2.302 N-Gramme + 1.838 Phrasen, generiert und handkuratiert |
 | **Deutsches FTPO-Rezept** | nicht vorhanden | vollständige Modal-Pipeline, ein Lauf für neun Dollar |
-| **Anti-Slop-Prompt für DE-Copy** | nicht vorhanden | acht Zeilen, gemessen gegen zwei Alternativen |
+| **Anti-Slop-Prompt für DE-Copy** | nicht vorhanden | acht Zeilen, in vier Armen gegengemessen |
 
 ---
 
@@ -124,31 +130,45 @@ Vergleicht beliebig viele Arme auf denselben Prompts mit demselben Seed. Misst B
 
 ## Was die Messung zeigt
 
-Drei Arme, dieselben 36 Holdout-Prompts, `temperature=0.7`, gleicher Seed.
+Vier Arme aus zwei Faktoren, Finetune ja/nein mal System-Prompt ja/nein. Dieselben 36 Holdout-Prompts, dieselbe H100, `temperature=0.7`, Seed `1234+idx`.
 
-| Arm | Banlist-Treffer /1k | Struktur-Slop (Median) | „maximal" | „absolut" |
-|---|---|---|---|---|
-| Basismodell, nackt | 38,64 | 56,1 | 1 | 5 |
-| Basismodell + Prompt | 19,20 | 57,3 | **0** | 1 |
-| FTPO-Finetune | **12,04** | **63,8** | **59** | **55** |
+| Arm | Banlist-Treffer /1k | Struktur-Slop (Median) | „maximal“ | „absolut“ | „eben alles“ | „revolutionier…“ |
+|---|---|---|---|---|---|---|
+| Basismodell, nackt | 38,64 | 56,1 | 1 | 5 | 0 | 13 |
+| Basismodell + Prompt | 21,04 | **33,7** | 1 | 1 | 0 | 0 |
+| FTPO-Finetune, nackt | 12,04 | 63,8 | 59 | 55 | 13 | 5 |
+| FTPO-Finetune + Prompt | **6,27** | 60,6 | 15 | 17 | 0 | 0 |
 
-Der Finetune gewinnt auf der Metrik, gegen die er trainiert wurde, und verliert auf jeder anderen. Zwei Dinge stehen dahinter.
+**Die Methode wirkt, und sie stapelt sich mit Prompting.** Der Prompt allein drückt die Banlist-Treffer von 38,64 auf 21,04, der Finetune allein auf 12,04, beides zusammen auf 6,27. Der Finetune hat dabei auch eine echte Floskel entfernt, „revolutionier…“ fällt von 13 auf 5.
 
-**Die Zahl ist zirkulär.** Gemessen wird gegen dieselbe Liste, die ins Training ging. Das belegt, dass das Training sein Ziel getroffen hat. Über den Text sagt es nichts. Eine Nachrechnung heute ergibt statt der ursprünglich berichteten 92 Prozent rund 66.
+**Und genau der Arm mit dem besten Messwert wird im Lesetest schlecht bewertet.** Die Metrik verbessert sich, der Text verschlechtert sich, im selben Experiment. Beides steht nebeneinander, keines hebt das andere auf.
 
-**Der Slop wandert, statt zu verschwinden.** Bannt man `inklusive`, fällt es von 558 auf 39 Treffer. An derselben Stelle springt `maximal` von 1 auf 59, `absolut` von 5 auf 55. Struktureller Slop wird schlechter, nicht besser.
+Zwei ältere Einschränkungen gelten weiter.
+
+**Die Banlist-Zahl ist zirkulär.** Gemessen wird gegen dieselbe Liste, die ins Training ging. Das belegt, dass das Training sein Ziel getroffen hat. Über den Text sagt es nichts. Eine Nachrechnung heute ergibt statt der ursprünglich berichteten 92 Prozent rund 66.
+
+**Ohne Prompt wandert der Slop, statt zu verschwinden.** Bannt man `inklusive`, fällt es von 558 auf 39 Treffer. An derselben Stelle springt `maximal` von 1 auf 59, `absolut` von 5 auf 55.
 
 ### Blinder Lesetest
 
-36 Holdout-Prompts, verdeckte Zuordnung, zwei Gutachter mit verschiedenen Maßstäben. Beide sind LLMs, keine Menschen. Das schwächt den Test, ein Menschentest steht aus.
+36 Holdout-Prompts, verdeckte Zuordnung, bester und schlechtester Text je Aufgabe. Zwei Gutachter mit verschiedenen Maßstäben, beide sind LLMs, keine Menschen. Das schwächt den Test, ein Menschentest steht aus.
 
 | Arm | Gutachter 1: bester / schlechtester | Gutachter 2: bester / schlechtester |
 |---|---|---|
-| Basismodell | 17 / 2 | 1 / 1 |
-| Basismodell + Prompt | 19 / 2 | **35** / 0 |
-| FTPO-Finetune | **0** / **32** | **0** / **35** |
+| Basismodell, nackt | 7 / 1 | 2 / 1 |
+| Basismodell + Prompt | **25** / 1 | **31** / 0 |
+| FTPO-Finetune, nackt | 0 / 20 | 0 / **34** |
+| FTPO-Finetune + Prompt | 4 / **14** | 3 / 1 |
 
-Beim schlechtesten Text waren sich beide in 31 von 36 Fällen einig. Ein unabhängiger dritter Lauf im Juni kam ebenfalls auf 0 von 36 beste und 32 von 36 schlechteste.
+Kein Finetune-Arm kommt bei den besten Texten in die Nähe des Prompts allein. Beim schlechtesten Text sind sich die Gutachter uneinig, wie hart sie den kombinierten Arm treffen. Gutachter 1 setzt ihn in 14 von 36 Fällen ans Ende, Gutachter 2 nur einmal.
+
+### Woher der Abstand kommt
+
+Die Ursache lässt sich trennen, und zwar in zwei Teile.
+
+**Den Wortschatz repariert der Prompt.** Die antrainierten Krücken verschwinden mit ihm. „eben alles“ fällt von 13 auf 0, „maximal“ von 59 auf 15, „absolut“ von 55 auf 17.
+
+**Den Satzbau repariert er nicht.** Der Struktur-Slop des kombinierten Arms bleibt bei 60,6, gegen 33,7 beim Basismodell mit demselben Prompt. Dazu kommen Grammatikschäden. Von zehn Wendungen, die die Gutachter als kaputt markiert haben, stammen acht ausschließlich aus den Finetune-Armen, im Basismodell kommt keine davon vor. Das ist die Herkunftsprüfung der benannten Fehler, keine systematische Grammatikprüfung des Korpus.
 
 ### Was der Finetune trotzdem behoben hat
 
@@ -179,13 +199,16 @@ utils/dataset_helpers.py:136   logger.info(...)        # geloggt
 
 ## Was das für dich heißt
 
-**Du willst bessere deutsche Copy.** Nimm den Prompt. Er kostet nichts, braucht keine GPU und war in unserer Messung der stärkste Arm.
+**Du musst Floskeln aus einer festen Liste zuverlässig loswerden.** Nimm Modell und Prompt zusammen. Das ist mit 6,27 Treffern je 1.000 Tokens der stärkste Arm der Messung. Plane eine Redaktionsrunde für Grammatik und Satzbau ein, der Arm liefert keinen fertigen Text.
+
+**Du willst einen lesbaren Entwurf.** Nimm den Prompt allein. Er kostet nichts, braucht keine GPU, und beide Gutachter wählen seine Texte am häufigsten als beste.
 
 **Du willst die Methode weitertreiben.** Nimm die Baseline, den Spread-Diskriminator und die Eval-Harness. Das sind die Teile, die tragen. Drei Ansatzpunkte in der Reihenfolge ihrer Wirkung:
 
 1. **Die tote Bremse reparieren.** Die berechnete Chosen-Quota anwenden. Fünf Zeilen, trifft die Ursache direkt.
 2. **Gegen eine Liste messen, die das Training nicht kannte.** Ein zweiter Profiling-Lauf liefert sie. Ohne das misst jede Zahl sich selbst.
 3. **Den Prompt als Kontrollarm ernst nehmen.** Der billigste Arm gehört an den Anfang, nicht ans Ende. Reicht er, hat sich die Trainingsfrage erledigt.
+4. **Alle Kombinationen messen, nicht nur die naheliegenden Paare.** Der Finetune hat den Anti-Slop-Prompt in der ersten Messung nie bekommen. Daraus wurde ein Fazit, das die Vierfeld-Messung nicht hält.
 
 **Du willst es grundsätzlich anders lösen.** Eine feste Liste ist eine Aufzählung, Slop ist eine Häufungs-Eigenschaft. Zwei Richtungen bieten sich an: ein dynamisches Frequenz-Anomalie-Ziel, das sich bei jedem Schritt neu gegen die Baseline-Verteilung misst, oder Multi-Amateur Contrastive Decoding, das ganz ohne Training auskommt und gegen die Logits eines absichtlich schlecht schreibenden Zweitmodells dekodiert.
 
@@ -200,7 +223,7 @@ scripts/build_prompts.py     Prompt-Grid über 15 Branchen
 modal_app.py                 Generierung, FTPO-Training, Merge, HF-Upload
 eval/run_holdout_eval.py     Mehr-Arm-Vergleich mit allen Metriken
 eval/structural_slop.py      Nominalstil, Passiv, Satzbau
-configs/antislop_prompt.md   der Prompt, der gewonnen hat
+configs/antislop_prompt.md   der System-Prompt, in allen Armen derselbe
 configs/de_extra_bans.json   handkuratierte Banlist
 docs/stufe-0-baseline.md     Abnahme-Dokumentation des Korpus
 docs/SERVING.md              Deploy auf einem vLLM-Endpoint

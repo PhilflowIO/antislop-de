@@ -1,16 +1,33 @@
 # antislop-de
 
-**English summary.** This repo documents a failed experiment, published because
-the negative result is useful. Goal: fine-tune `google/gemma-3-12b-it` with FTPO
-(Final Token Preference Optimization, Sam Paech) so it writes natural German
-marketing copy instead of the flat, formulaic "AI voice". The fine-tune does cut
-banlist phrases, but it was measured against the very banlist it was trained on,
-so the number says little. On every axis it was not trained for, the text got
-worse. In a blind three-way read test over 36 held-out prompts with two
-independent LLM reviewers (no human raters), the fine-tune was picked best in 0
-cases and worst in 32 and 35 cases respectively. Plain gemma with a plain anti-slop system prompt was
-the strongest arm for both reviewers. If you came for a solution, take the prompt in
-[`configs/antislop_prompt.md`](./configs/antislop_prompt.md) and skip the LoRA.
+**English summary.** The method does exactly what it was built to do, and the
+text still does not get better. That gap is why this repo is public. Goal:
+fine-tune `google/gemma-3-12b-it` with FTPO (Final Token Preference Optimization,
+Sam Paech) so it writes natural German marketing copy instead of the flat,
+formulaic "AI voice".
+
+What worked: the fine-tune cuts banlist phrases harder than anything else in the
+comparison, 12.04 hits per 1,000 tokens against 19.20 for a plain system prompt
+and 38.64 for the untouched model. A fabricated product claim that showed up in
+20 of 36 texts dropped to 0, and seven text collapses dropped to 0. The training
+recipe is sound and cheap, roughly nine dollars per run on one H100.
+
+What did not: that winning number is scored against the very list the model was
+trained on, so it mostly proves the training hit its target. Off that list the
+model swaps one crutch for another, `maximal` goes from 1 hit to 59 and `absolut`
+from 5 to 55, while the same prompt-only arm produces 0 and 1. Structural slop
+(nominal style, passive voice) gets worse, median 63.8 against 56.1 untouched. In
+a blind three-way read test over 36 held-out prompts with two independent LLM
+reviewers (no human raters), the fine-tune was picked best in 0 cases and worst
+in 32 and 35 cases respectively. Plain gemma with a plain anti-slop system prompt
+was the strongest arm for both reviewers.
+
+So: suppressing a list of phrases is not the same as writing like a person. If you
+came for a solution, take the prompt in
+[`configs/antislop_prompt.md`](./configs/antislop_prompt.md) and skip the LoRA. If
+you came to push the method further, the three places worth attacking are in
+"Wo man ansetzen sollte" below.
+
 Everything below is in German; the full project diary is
 [`JOURNEY.md`](./JOURNEY.md).
 

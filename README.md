@@ -35,6 +35,15 @@ Volle Fassung samt Inferenz-Einstellungen: [`configs/antislop_prompt.md`](./conf
 
 Denselben System-Prompt aus Weg 1 davorhängen. Ohne ihn produziert das Modell seine eigenen antrainierten Tics.
 
+> **Lade das Modell mit `transformers==4.56.2`.** transformers 5.x benennt die Gemma-3-Parameter
+> um, der Checkpoint greift dann nicht mehr. Du bekommst nur eine Warnung, zufällig
+> initialisierte Gewichte und als Ausgabe zusammenhanglose Tokens aus fremden Schriftsystemen.
+> Das sieht nach einem kaputten Modell aus und ist eine falsche Bibliotheksversion.
+
+```bash
+pip install "torch==2.8.*" "transformers==4.56.2"
+```
+
 ```python
 from transformers import AutoModelForImageTextToText, AutoTokenizer
 

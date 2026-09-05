@@ -1,0 +1,62 @@
+{
+  "dialog/literary (cultural/dibilit)": {
+    "n_sentences": 12500,
+    "n_tokens": 145291,
+    "nominalization_per_100": 1.05,
+    "noun_verb_ratio": 1.59,
+    "mean_sentence_len": 11.6,
+    "clauses_per_sentence": 1.3,
+    "mean_parse_depth": 2.72,
+    "passive_ratio": 0.03
+  },
+  "forum (web/wikidiscussions)": {
+    "n_sentences": 969,
+    "n_tokens": 12305,
+    "nominalization_per_100": 2.13,
+    "noun_verb_ratio": 2.13,
+    "mean_sentence_len": 12.7,
+    "clauses_per_sentence": 1.19,
+    "mean_parse_depth": 2.61,
+    "passive_ratio": 0.089
+  },
+  "forum-AT (web/onemillionposts)": {
+    "n_sentences": 5476,
+    "n_tokens": 82011,
+    "nominalization_per_100": 2.59,
+    "noun_verb_ratio": 2.2,
+    "mean_sentence_len": 15.0,
+    "clauses_per_sentence": 1.41,
+    "mean_parse_depth": 2.79,
+    "passive_ratio": 0.123
+  },
+  "encyclopedic (web/wikipedia)": {
+    "n_sentences": 5113,
+    "n_tokens": 83309,
+    "nominalization_per_100": 2.42,
+    "noun_verb_ratio": 3.27,
+    "mean_sentence_len": 16.3,
+    "clauses_per_sentence": 1.3,
+    "mean_parse_depth": 2.95,
+    "passive_ratio": 0.205
+  },
+  "academic (scientific/openalex)": {
+    "n_sentences": 7113,
+    "n_tokens": 135410,
+    "nominalization_per_100": 3.39,
+    "noun_verb_ratio": 2.6,
+    "mean_sentence_len": 19.0,
+    "clauses_per_sentence": 1.44,
+    "mean_parse_depth": 3.19,
+    "passive_ratio": 0.136
+  },
+  "speech (political/germanpoliticalspeeches)": {
+    "n_sentences": 7955,
+    "n_tokens": 141362,
+    "nominalization_per_100": 3.35,
+    "noun_verb_ratio": 1.63,
+    "mean_sentence_len": 17.8,
+    "clauses_per_sentence": 1.66,
+    "mean_parse_depth": 3.25,
+    "passive_ratio": 0.076
+  }
+}

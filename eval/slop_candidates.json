@@ -1,0 +1,65 @@
+{
+  "_comment": "Kuratierte deutsche KI-Floskel-Kandidaten für die Stufe-0-Augenschein-Abnahme. Quelle: research/anti-slop-*.md + dokumentierte deutsche LLM-Klischees. Phil urteilt: sind das echte KI-Floskeln? Das Harness prüft, ob die Human-Baseline sie als near-zero führt (=korrekt als Slop erkennbar) und Alltagssprache als präsent schützt. Zwei Ban-Pfade in auto-antislop: n-gram-Pfad (Content-Token-Bi/Trigramme) und Slop-Phrase-Pfad (rohe Phrasen, auch funktionswort-lastig).",
+  "slop_phrases": [
+    "es ist wichtig zu beachten",
+    "spielt eine entscheidende rolle",
+    "von entscheidender bedeutung",
+    "ein wesentlicher aspekt",
+    "ganzheitlicher ansatz",
+    "nahtlose integration",
+    "wertvolle einblicke",
+    "rasante entwicklung",
+    "vielfältige möglichkeiten",
+    "facettenreiche welt",
+    "fesselnde geschichte",
+    "pulsierende metropole",
+    "wahres meisterwerk",
+    "tiefgreifende auswirkungen",
+    "umfassenden überblick",
+    "wesentlicher bestandteil",
+    "zusammenfassend lässt sich sagen",
+    "im laufe der zeit"
+  ],
+  "slop_phrases_functionword": [
+    "in der heutigen zeit",
+    "es ist wichtig zu betonen",
+    "tauchen wir ein",
+    "in diesem sinne",
+    "lassen sie uns",
+    "es sei darauf hingewiesen"
+  ],
+  "slop_words": [
+    "zudem",
+    "somit",
+    "ferner",
+    "letztendlich",
+    "diesbezüglich",
+    "nahtlos",
+    "facettenreich",
+    "essenziell",
+    "maßgeblich",
+    "ganzheitlich"
+  ],
+  "control_phrases": [
+    "tut mir leid",
+    "mach schon",
+    "mal sehen",
+    "guten tag",
+    "gute idee"
+  ],
+  "_expository_comment": "Sachtext-Negativ-Kontrolle (Gutachter A): normales argumentatives/wissenschaftliches Deutsch, das NICHT als Slop gebannt werden darf. Muss nach Aufnahme des expository-Registers präsent (>0) sein, sonst verlernt das Modell sauberes Sachdeutsch.",
+  "expository_controls": [
+    "empirische untersuchung",
+    "systematische analyse",
+    "historischer kontext",
+    "theoretische grundlage",
+    "ökonomische perspektive",
+    "folglich ergibt",
+    "demnach gilt",
+    "hierbei handelt",
+    "insbesondere bei",
+    "darüber hinaus",
+    "zunehmend wichtig",
+    "grundsätzlich gilt"
+  ]
+}

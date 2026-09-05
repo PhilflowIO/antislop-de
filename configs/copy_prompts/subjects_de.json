@@ -1,0 +1,173 @@
+{
+  "_comment": "Subjekte für die Website-Copy-Profiling-Prompts (Schritt 2). Aufgabe bleibt konstant ('schreib Website-Text'), das SUBJEKT variiert breit — sonst würden die Themenwörter eines einzelnen Subjekts gegen die Human-Baseline über-repräsentiert und fälschlich als Slop geflaggt. Der Profiling-Grid nimmt nur Subjekte mit profiling != false; gestreut über den deutschen KMU-/B2B-Alltag. Fakten bewusst knapp + faktentreu: gemma soll geerdet, aber frei texten, damit sein natürlicher Marketing-Slop emergiert.",
+  "_raven_quelle": "Vault app-arch-flow-raven-paper (flow.raven/docs/flow-raven-paper.md) — laut Paper-Schlusszeile die Grundlage für Branding/Hero/Pitch/Sales.",
+  "_raven_profiling_false": "Raven ist der ANWENDUNGSFALL, nicht der Treibstoff fürs Slop-Finden. Aus dem Profiling-Grid ausgeschlossen (profiling: false), sonst flutet sein Feature-Vokabular (CRM-Sync, Sprecher-Zuordnung — korrekte Fachbegriffe, KEIN Slop) die emergente Kandidatenliste und erschwert den Hand-Review. Raven-Brief bleibt hier für die spätere Eval/Demo, wo echte Raven-Copy beurteilt wird.",
+
+  "subjects": [
+    {
+      "id": "raven",
+      "flaggschiff": true,
+      "profiling": false,
+      "name": "Raven",
+      "branche": "B2B-SaaS / Meeting-Plattform",
+      "zielgruppe": "DACH, regulierte Branchen (Healthcare, Versicherung, Finanz, Telco)",
+      "fakten": [
+        "Plattform, die den ganzen Lebenszyklus eines Meetings hält: planen, durchführen, festhalten, befragen — die Inhalte verlassen nie die eigene Infrastruktur",
+        "der Unterschied zu klassischen Notetaker-Bots ist nicht Sichtbarkeit, sondern Aktivität: solche Bots schreiben nur passiv mit und hinterlassen tote Transkripte, die niemand mehr nutzt — Raven ist der Meeting-Raum selbst, sein Agent handelt aktiv auf Basis des Gesagten statt nur zu protokollieren; jede Person wird auf einer eigenen Tonspur aufgezeichnet, dadurch 100% korrekte Sprecher-Zuordnung",
+        "der Raven-Agent plant Meetings im Gespräch (Kalender-Schreibzugriff, vier Provider) und befragt den gesamten Gesprächsbestand: er sucht zuerst alle Meetings, in denen eine Person vorkam, findet dann im Transkript die relevanten Stellen und fasst sie mit Beleg der Fundstelle zusammen",
+        "EU-gehostet in Deutschland und Frankreich, DSGVO-konform und dem US-Cloud-Act entzogen, vertraglich garantierte EU-Datenhaltung — Datensouveränität als Default",
+        "integriert sich in die bestehende Infrastruktur statt ein weiteres Insel-Tool zu sein: CRM-Sync (HubSpot, Pipedrive), Kalender- und Kontakt-Sync; Meetings lassen sich auch nachträglich per Drag-and-Drop hochladen"
+      ]
+    },
+    {
+      "id": "dachdeckerei",
+      "name": "Dachdeckerei Brunner",
+      "branche": "Handwerk",
+      "fakten": [
+        "Familienbetrieb in dritter Generation aus dem Allgäu",
+        "Steildach, Flachdach, Dachfenster und Solarmontage aus einer Hand",
+        "Notdienst bei Sturmschäden innerhalb von 24 Stunden"
+      ]
+    },
+    {
+      "id": "steuerkanzlei",
+      "name": "Kanzlei Vogt & Partner",
+      "branche": "Steuerberatung",
+      "fakten": [
+        "Steuerberatung für Selbstständige, Freiberufler und kleine GmbHs",
+        "vollständig digitale Belegverarbeitung, persönliche Ansprechpartnerin",
+        "Spezialisierung auf E-Commerce- und Kreativ-Branche"
+      ]
+    },
+    {
+      "id": "physiopraxis",
+      "name": "Physiotherapie am Stadtpark",
+      "branche": "Gesundheit",
+      "fakten": [
+        "Krankengymnastik, manuelle Therapie und Sportphysiotherapie",
+        "alle Kassen und Privat, Termine auch am frühen Abend",
+        "eigener Trainingsbereich für die Reha-Nachsorge"
+      ]
+    },
+    {
+      "id": "sprachschule",
+      "name": "Lingua Online",
+      "branche": "Bildung / E-Learning",
+      "fakten": [
+        "Live-Sprachkurse mit echten Lehrerinnen in kleinen Gruppen",
+        "Englisch, Spanisch und Business-Deutsch, flexibel buchbar",
+        "kostenlose Einstufung und erste Probestunde"
+      ]
+    },
+    {
+      "id": "modelabel",
+      "name": "Halmstoff",
+      "branche": "E-Commerce / nachhaltige Mode",
+      "fakten": [
+        "schlichte Basics aus Bio-Baumwolle und Leinen, fair in Portugal genäht",
+        "kleine Kollektionen statt schneller Trends, lebenslange Reparatur",
+        "versandkostenfrei ab 80 Euro, 30 Tage Rückgabe"
+      ]
+    },
+    {
+      "id": "beratung",
+      "name": "Norddeich Consulting",
+      "branche": "Unternehmensberatung",
+      "fakten": [
+        "Beratung für mittelständische Industrie bei Digitalisierung und Prozessen",
+        "umsetzungsnah statt Folien — die Berater arbeiten mit im Betrieb",
+        "Festpreis-Pakete statt offener Tagessätze"
+      ]
+    },
+    {
+      "id": "restaurant",
+      "name": "Gasthaus Lindenhof",
+      "branche": "Gastronomie",
+      "fakten": [
+        "regionale Küche mit Zutaten von Höfen aus dem Umland",
+        "wechselnde Mittagskarte, Biergarten unter alten Linden",
+        "Räume für Familienfeiern bis 40 Personen"
+      ]
+    },
+    {
+      "id": "pm_saas",
+      "name": "Taktboard",
+      "branche": "B2B-SaaS / Projektmanagement",
+      "fakten": [
+        "schlankes Projekt- und Aufgaben-Tool für Teams bis 30 Personen",
+        "Kanban, Zeiterfassung und einfache Auslastungs-Übersicht",
+        "Server in Deutschland, Einrichtung in unter einer Stunde"
+      ]
+    },
+    {
+      "id": "fitnessstudio",
+      "name": "Studio Kraftwerk",
+      "branche": "Fitness",
+      "fakten": [
+        "inhabergeführtes Studio ohne Mindestlaufzeit",
+        "Gerätetraining, Kurse und persönliche Trainingspläne",
+        "kostenloses Probetraining und Eingangscheck"
+      ]
+    },
+    {
+      "id": "immobilienmakler",
+      "name": "Stadtquartier Immobilien",
+      "branche": "Immobilien",
+      "fakten": [
+        "Vermittlung von Wohnimmobilien im Rhein-Main-Gebiet",
+        "ehrliche Marktpreis-Einschätzung statt geschönter Erwartungen",
+        "professionelle Fotos, Grundrisse und 360-Grad-Rundgang inklusive"
+      ]
+    },
+    {
+      "id": "baeckerei",
+      "name": "Bäckerei Korn & Kruste",
+      "branche": "Lebensmittel-Handwerk",
+      "fakten": [
+        "Sauerteigbrote nach alter Tradition, lange Teigführung über Nacht",
+        "Mehl aus regionalen Mühlen, keine Backmischungen",
+        "drei Filialen, eigenes Café mit Frühstück"
+      ]
+    },
+    {
+      "id": "it_security",
+      "name": "Festwall Security",
+      "branche": "B2B / IT-Sicherheit",
+      "fakten": [
+        "IT-Sicherheit für den Mittelstand: Penetrationstests und Notfallpläne",
+        "deutschsprachiges Team, Reaktion rund um die Uhr",
+        "klare Berichte, die auch die Geschäftsführung versteht"
+      ]
+    },
+    {
+      "id": "tierarzt",
+      "name": "Tierarztpraxis Pfötchen",
+      "branche": "Gesundheit / Tier",
+      "fakten": [
+        "Praxis für Hunde, Katzen und Kleintiere mit eigenem OP",
+        "Vorsorge, Zahnbehandlung und sanfte Narkose-Verfahren",
+        "Online-Terminbuchung und Erinnerung per SMS"
+      ]
+    },
+    {
+      "id": "fotograf",
+      "name": "Mira Sand Fotografie",
+      "branche": "Kreativ-Dienstleistung",
+      "fakten": [
+        "Hochzeits- und Paarfotografie im natürlichen, ungestellten Stil",
+        "Reportage statt steifer Posen, alle Bilder hochauflösend",
+        "feste Pakete mit klarer Bildanzahl und Lieferzeit"
+      ]
+    },
+    {
+      "id": "solartechnik",
+      "name": "Sonnschritt Energietechnik",
+      "branche": "Energie / Handwerk",
+      "fakten": [
+        "Planung und Montage von Photovoltaik mit Speicher und Wallbox",
+        "ein Ansprechpartner von der Beratung bis zur Anmeldung beim Netzbetreiber",
+        "Förderberatung inklusive, Festpreis nach Vor-Ort-Termin"
+      ]
+    }
+  ]
+}

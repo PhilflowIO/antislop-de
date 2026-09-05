@@ -1,0 +1,78 @@
+{
+  "_comment": "Copy-Typen für die Profiling-Prompts. Jedes Template ist ein realistischer Werbetexter-Auftrag (User-Turn). BEWUSST ohne 'vermeide Floskeln/Slop' — wir wollen gemmas natürlichen Default-Marketing-Ton hervorlocken, nicht unterdrücken. Platzhalter: {name} {branche} {fakten_block} {tone_hint} {length_hint}. tone/length werden vom Generator aus den Achsen-Listen eingesetzt.",
+
+  "tones": [
+    {"id": "sachlich", "hint": "Ton: sachlich und vertrauenswürdig."},
+    {"id": "emotional", "hint": "Ton: warm, nahbar, in Du-Ansprache."},
+    {"id": "modern", "hint": "Ton: modern und frisch, gern mit Haltung."},
+    {"id": "premium", "hint": "Ton: hochwertig und gehoben."}
+  ],
+
+  "lengths": [
+    {"id": "kurz", "hint": "Halte es knapp."},
+    {"id": "ausfuehrlich", "hint": "Ruhig etwas ausführlicher."}
+  ],
+
+  "copy_types": [
+    {
+      "id": "hero",
+      "label": "Hero-Section",
+      "template": "Schreib die Hero-Section für die Startseite von {name} ({branche}): eine starke Überschrift und ein, zwei Sätze darunter. {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "ueber_uns",
+      "label": "Über uns",
+      "template": "Schreib einen 'Über uns'-Abschnitt für die Website von {name} ({branche}). {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "leistungen",
+      "label": "Leistungs-Überblick",
+      "template": "Schreib einen Abschnitt, der die wichtigsten Leistungen von {name} ({branche}) überblickartig vorstellt. {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "feature",
+      "label": "Einzelne Leistung",
+      "template": "Greif eine zentrale Leistung von {name} ({branche}) heraus und beschreib sie in einem eigenen Website-Abschnitt. {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "vorteile",
+      "label": "Vorteile / Warum wir",
+      "template": "Schreib einen 'Warum {name}'-Abschnitt mit den drei stärksten Vorteilen. {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "ansatz",
+      "label": "Was wir anders machen",
+      "template": "Schreib einen Abschnitt darüber, was {name} ({branche}) anders macht als der Wettbewerb. {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "cta",
+      "label": "Call-to-Action",
+      "template": "Schreib einen Call-to-Action-Abschnitt am Ende der Startseite von {name}, der zum nächsten Schritt einlädt. {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "intro",
+      "label": "Startseiten-Intro",
+      "template": "Schreib den einleitenden Fließtext direkt unter der Hero-Section der Startseite von {name} ({branche}). {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "pricing_intro",
+      "label": "Preis-Intro",
+      "template": "Schreib einen kurzen Einleitungstext, der über dem Preis-Bereich von {name} steht und die Preise einordnet. {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "faq",
+      "label": "FAQ",
+      "template": "Schreib drei häufige Fragen samt Antworten für die FAQ-Seite von {name} ({branche}). {fakten_block} {tone_hint} {length_hint}"
+    },
+    {
+      "id": "taglines",
+      "label": "Taglines",
+      "template": "Schlag fünf mögliche Taglines bzw. Slogans für {name} ({branche}) vor. {fakten_block} {tone_hint}"
+    },
+    {
+      "id": "leistungsseite",
+      "label": "Unterseite Leistung",
+      "template": "Schreib den Haupttext einer eigenen Unterseite zu einer Leistung von {name} ({branche}) — mit Zwischenüberschriften. {fakten_block} {tone_hint} {length_hint}"
+    }
+  ]
+}

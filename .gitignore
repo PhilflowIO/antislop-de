@@ -1,0 +1,47 @@
+# Daten & Modelle (nie ins Repo — groß, teils lizenz-/kontaminationsbehaftet)
+# /data (ohne Slash) ignoriert auch einen SYMLINK namens data — `data/` allein
+# tut das nicht, wodurch ein Worktree-Symlink versehentlich getrackt werden kann.
+/data
+data/
+corpora/
+models/
+*.parquet
+*.gguf
+*.safetensors
+*.bin
+*.csv
+*.jsonl
+slop_profile*.json
+human_*_profile.json
+
+# Secrets / Env
+.env
+.env.*
+*.key
+secrets/
+modal.toml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.uv/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Outputs / Logs / Scratch
+outputs/
+runs/
+wandb/
+*.log
+scratch/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+
+# Upstream-Code von Dritten (nicht unser Code, nicht mitveröffentlicht).
+# Holen: siehe vendor/README.md. Unsere Patches: vendor/PATCHES-DE.md
+vendor/auto-antislop/

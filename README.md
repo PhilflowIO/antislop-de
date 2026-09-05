@@ -1,304 +1,243 @@
 # antislop-de
 
-**English summary.** The method does exactly what it was built to do, and the
-text still does not get better. That gap is why this repo is public. Goal:
-fine-tune `google/gemma-3-12b-it` with FTPO (Final Token Preference Optimization,
-Sam Paech) so it writes natural German marketing copy instead of the flat,
-formulaic "AI voice".
+**Bring einem Sprachmodell deutsche Sprache bei, die nach Mensch klingt.** Die vollständige Anti-Slop-Pipeline für Deutsch, von der Korpus-Destillation bis zum trainierten Modell.
 
-What worked: the fine-tune cuts banlist phrases harder than anything else in the
-comparison, 12.04 hits per 1,000 tokens against 19.20 for a plain system prompt
-and 38.64 for the untouched model. A fabricated product claim that showed up in
-20 of 36 texts dropped to 0, and seven text collapses dropped to 0. The training
-recipe is sound and cheap, roughly nine dollars per run on one H100.
+Gebaut auf einem Lineal aus 860 Millionen Zeichen menschlichem Deutsch, einem Diskriminator, der Fachbegriff von Floskel trennt, und dem ersten deutschen FTPO-Finetune.
 
-What did not: that winning number is scored against the very list the model was
-trained on, so it mostly proves the training hit its target. Off that list the
-model swaps one crutch for another, `maximal` goes from 1 hit to 59 and `absolut`
-from 5 to 55, while the same prompt-only arm produces 0 and 1. Structural slop
-(nominal style, passive voice) gets worse, median 63.8 against 56.1 untouched. In
-a blind three-way read test over 36 held-out prompts with two independent LLM
-reviewers (no human raters), the fine-tune was picked best in 0 cases and worst
-in 32 and 35 cases respectively. Plain gemma with a plain anti-slop system prompt
-was the strongest arm for both reviewers.
-
-So: suppressing a list of phrases is not the same as writing like a person. If you
-came for a solution, take the prompt in
-[`configs/antislop_prompt.md`](./configs/antislop_prompt.md) and skip the LoRA. If
-you came to push the method further, the three places worth attacking are in
-"Wo man ansetzen sollte" below.
-
-Everything below is in German; the full project diary is
-[`JOURNEY.md`](./JOURNEY.md).
+[![License: Apache 2.0](https://img.shields.io/badge/Code-Apache%202.0-blue.svg)](./LICENSE)
+[![Model](https://img.shields.io/badge/%F0%9F%A4%97%20Modell-gemma--3--12b--it--antislop--de-yellow)](https://huggingface.co/PhilflowIO/gemma-3-12b-it-antislop-de)
+[![Base](https://img.shields.io/badge/Basis-gemma--3--12b--it-lightgrey)](https://huggingface.co/google/gemma-3-12b-it)
 
 ---
 
-## Worum es ging
+## Schnellstart
 
-Instruction-Tuning und RLHF glätten Sprache. Deutsche KI-Copy klingt danach
-gleichförmig: Nominalstil, Floskeln, Adjektiv-Ketten, „nahtlos", „kristallklar",
-„maximal". Die Idee war, das an der Wurzel zu lösen statt mit einem nachgelagerten
-Humanizer: **FTPO** zieht den modell-eigenen Slop auf Gewichts-Ebene raus, ohne
-die Fähigkeiten zu beschädigen, anders als DPO. Für Englisch gibt es das
-(`sam-paech/auto-antislop`), für Deutsch nicht. Dieses Repo ist der deutsche Bau.
+### Weg 1: der Prompt (empfohlen, kostenlos)
 
-Basismodell `google/gemma-3-12b-it`, Training auf Modal (H100, rund 9 Dollar für
-den vollen Lauf), Anwendungsfall deutsche Website-Copy, Holdout ein Prompt-Set,
-das nie im Trainings-Grid war.
+Nimm ein beliebiges Modell und häng diesen System-Prompt davor. Er gewinnt in unserer Messung gegen den Finetune.
 
-## Das Hauptergebnis: der Prompt schlägt den Finetune
+```
+Du bist ein erfahrener deutscher Werbetexter. Gib ausschließlich den fertigen
+Website-Text aus, keine Vorrede, keine Erklärung, keine Optionen. Schreibe knapp
+und direkt in der Du-Form. Vermeide Marketing-Floskeln und leere Verstärker wie
+'maximal', 'kristallklar', 'nahtlos', 'inklusive allem', 'souverän'. Keine
+Doppelpunkt-Einleitungen, keine Adjektiv-Aufzählungen. Aktiv statt Passiv, kurze
+Sätze, konkret sagen, was das Produkt tut.
+```
 
-Drei Arme, dieselben 36 Holdout-Prompts, temperature 0,7:
+Volle Fassung samt Inferenz-Einstellungen: [`configs/antislop_prompt.md`](./configs/antislop_prompt.md)
 
-1. **Baseline**: nacktes `google/gemma-3-12b-it`, kein System-Prompt.
-2. **Prompt-only**: dasselbe Modell plus dem Anti-Slop-System-Prompt aus
-   [`configs/antislop_prompt.md`](./configs/antislop_prompt.md).
-3. **v2-Finetune**: das FTPO-trainierte Modell.
+### Weg 2: das Modell
+
+```python
+from transformers import AutoModelForImageTextToText, AutoTokenizer
+
+tok = AutoTokenizer.from_pretrained("PhilflowIO/gemma-3-12b-it-antislop-de")
+model = AutoModelForImageTextToText.from_pretrained(
+    "PhilflowIO/gemma-3-12b-it-antislop-de",
+    torch_dtype="bfloat16", device_map="cuda")
+```
+
+`temperature=0.7`. Produktfakten faktentreu in den User-Prompt geben, sonst erfindet das Modell Positionierung.
+
+### Weg 3: die Pipeline neu fahren
+
+```bash
+# 1. Upstream holen, er liegt nicht im Repo (Lizenzgrund, siehe unten)
+git clone https://github.com/sam-paech/auto-antislop vendor/auto-antislop
+git -C vendor/auto-antislop checkout 8fb98fdf019e6fcc20164f9bdec41f9008fcd632
+# DE-Patches anwenden, Anleitung in vendor/PATCHES-DE.md
+
+# 2. Abhängigkeiten und Lineal
+uv sync
+uv run python scripts/baseline.py --gc-tokens 55000000
+
+# 3. Modal einrichten und prüfen
+modal token new
+modal run modal_app.py            # Preflight, gibt den Abnahme-Report aus
+modal run modal_app.py::smoke     # kleiner End-to-End-Lauf zum Gegenprüfen
+
+# 4. Messen
+uv run python eval/run_holdout_eval.py
+```
+
+Voraussetzungen für den GPU-Lauf: Modal-Secret `huggingface` mit einem HF-Token, akzeptierte Gemma-Lizenz auf Hugging Face, Volume `antislop-de-vol` (legt der Preflight an). Ein voller Lauf dauert rund zwei Stunden und kostet acht bis neun Dollar.
+
+---
+
+## Was hier entstanden ist
+
+Für Englisch gibt es eine Anti-Slop-Werkzeugkette. Für Deutsch gab es nichts. Das ist der Teil, der bleibt, unabhängig davon, wie das Training ausgegangen ist.
+
+| | vorher für Deutsch | mit antislop-de |
+|---|---|---|
+| **Referenz für „natürliches Deutsch"** | nicht vorhanden | 860 Mio. Zeichen, register-gemischt, calque-gefiltert, pre-2022 |
+| **Floskel gegen Fachbegriff trennen** | nicht gelöst | Branchen-Spread-Diskriminator über 15 Branchen |
+| **Nominalstil und Passiv messen** | nicht vorhanden | sechs spaCy-Metriken gegen eine menschliche Referenz |
+| **Deutsche Slop-Banlist** | nicht vorhanden | 2.302 N-Gramme + 1.838 Phrasen, generiert und handkuratiert |
+| **Deutsches FTPO-Rezept** | nicht vorhanden | vollständige Modal-Pipeline, ein Lauf für neun Dollar |
+| **Anti-Slop-Prompt für DE-Copy** | nicht vorhanden | acht Zeilen, gemessen gegen zwei Alternativen |
+
+---
+
+## Die Werkzeuge im Einzelnen
+
+### 1. Das Lineal: `scripts/baseline.py`
+
+Slop ist nichts Absolutes. Ein Wort wird zu Slop, wenn es in einem Register viel häufiger auftaucht, als ein Mensch es dort benutzen würde. Der Detektor braucht also einen Referenzkorpus, und dessen Qualität entscheidet über alles Weitere.
+
+Destilliert ein N-Gramm-Frequenzprofil aus German Commons und OpenSubtitles2018-DE. Registermischung: cultural 35,1 %, web 23,3 %, political 18,8 %, expository 16,0 %, Untertitel 6,8 %. Rund 33 Mio. Bigramme und 50 Mio. Trigramme. Alle Quellen pre-2022-sicher und lizenzsauber (ODC-BY, CC).
+
+Enthält den **Calque-Filter**. Synchron-Deutsch aus englischen Filmen ist übersetztes Englisch mit deutschen Vokabeln; ohne Filter steht `sir` mit einer Frequenz von 460.755 im Korpus und gilt dem Detektor als Muttersprache. Der Filter zog die Frequenz-Spitze von 787k auf 62k. Abnahme-Dokumentation: [`docs/stufe-0-baseline.md`](./docs/stufe-0-baseline.md).
+
+### 2. Der Diskriminator: `scripts/build_banlist.py`
+
+Das Kernproblem jeder Slop-Erkennung: Ein korrekter Fachbegriff wie „Wärmepumpe" fehlt im Lineal genauso wie eine hohle Floskel. Beide sehen für den naiven Detektor gleich aus.
+
+Die Lösung ist **Branchen-Spread**. Das Modell schreibt Copy über 15 Branchen. Streut ein N-Gramm über viele davon, ist es eine Floskel, denn „legen größten Wert" passt beim Dachdecker wie bei der Steuerkanzlei. Klebt es in einer Branche, ist es ein Fachbegriff und bleibt. Schwellwerte: Spread ≥ 5 markiert, ≤ 2 schützt.
+
+Das ist die übertragbarste Idee des Projekts und funktioniert für jede Sprache.
+
+### 3. Die Struktur-Messung: `eval/structural_slop.py`
+
+N-Gramme fangen Phrasen-Slop. Sie fangen nicht das, was deutsche KI-Copy wirklich schwerfällig macht: Nominalstil, Schachtelsätze, Passiv-Überhang. Sechs spaCy-Metriken schließen die Lücke: Nominalisierungen je 100 Tokens, Nomen-Verb-Verhältnis, Satzlänge, Teilsätze je Satz, Parse-Tiefe, Passiv-Anteil, jeweils gegen eine menschliche Referenzverteilung.
+
+Diese Messung deckte den wichtigsten Nebenbefund auf, siehe unten.
+
+### 4. Die Banlist: `configs/de_extra_bans.json`
+
+164 handkuratierte Einträge in vier Gruppen: 16 Floskeln, 22 Nominalstil-Marker, 116 branchenübergreifende N-Gramme, 10 emergente Tics. Dazu die zur Laufzeit generierte Liste aus 2.302 N-Grammen und 1.838 Phrasen.
+
+Die Handkuratierung ist kein Beiwerk. Der automatische Teil bannt auch Wörter, die Inhalt tragen, und Eigennamen der Beispielfirmen.
+
+### 5. Das Modell: FTPO-Training in `modal_app.py`
+
+Serverlos auf einer H100. Ein voller Lauf, also Generierung, Banlist-Erzeugung, Training und Merge, dauert rund zwei Stunden und kostet acht bis neun Dollar.
+
+FTPO statt DPO, weil DPO auf ganze Antworten optimiert und dabei Fähigkeiten mitverschiebt. FTPO greift auf einem einzelnen Token an einer einzelnen Position. Aus 1.380 Prompts entstehen über einen Backtracking-Sampler 3.778 Präferenzpaare.
+
+### 6. Die Eval-Harness: `eval/run_holdout_eval.py`
+
+Vergleicht beliebig viele Arme auf denselben Prompts mit demselben Seed. Misst Banlist-Treffer je 1.000 Tokens, Struktur-Slop, Tic-Frequenzen, Degenerationen und Lexik-Vielfalt. Der Holdout ist ein Prompt-Set, das im Trainings-Grid als `profiling: false` markiert war und nie im Trainingsmaterial lag.
+
+---
+
+## Was die Messung zeigt
+
+Drei Arme, dieselben 36 Holdout-Prompts, `temperature=0.7`, gleicher Seed.
+
+| Arm | Banlist-Treffer /1k | Struktur-Slop (Median) | „maximal" | „absolut" |
+|---|---|---|---|---|
+| Basismodell, nackt | 38,64 | 56,1 | 1 | 5 |
+| Basismodell + Prompt | 19,20 | 57,3 | **0** | 1 |
+| FTPO-Finetune | **12,04** | **63,8** | **59** | **55** |
+
+Der Finetune gewinnt auf der Metrik, gegen die er trainiert wurde, und verliert auf jeder anderen. Zwei Dinge stehen dahinter.
+
+**Die Zahl ist zirkulär.** Gemessen wird gegen dieselbe Liste, die ins Training ging. Das belegt, dass das Training sein Ziel getroffen hat. Über den Text sagt es nichts. Eine Nachrechnung heute ergibt statt der ursprünglich berichteten 92 Prozent rund 66.
+
+**Der Slop wandert, statt zu verschwinden.** Bannt man `inklusive`, fällt es von 558 auf 39 Treffer. An derselben Stelle springt `maximal` von 1 auf 59, `absolut` von 5 auf 55. Struktureller Slop wird schlechter, nicht besser.
 
 ### Blinder Lesetest
 
-Zwei unabhängige Gutachter, verdeckte Zuordnung der Arme, pro Prompt je ein
-bester und ein schlechtester Text. **Beide Gutachter sind LLMs, keine Menschen.**
-Das schwächt den Test: ein Modell, das Slop beurteilt, trägt denselben
-Trainingsdurchschnitt wie das Modell, das ihn erzeugt. Ein Menschentest über
-dieselben 36 Gruppen wurde nicht durchgeführt. Die beiden Gutachter arbeiteten mit
-verschiedenen Maßstäben: Gutachter 1 fragte, ob sich der Text nach einem
-deutschen Werbetexter liest, Gutachter 2 prüfte strikt gegen die Slop-Definition
-„Text, der die Gesten des Sagens macht, ohne etwas zu sagen".
+36 Holdout-Prompts, verdeckte Zuordnung, zwei Gutachter mit verschiedenen Maßstäben. Beide sind LLMs, keine Menschen. Das schwächt den Test, ein Menschentest steht aus.
 
-| Arm | G1 bester | G1 schlechtester | G2 bester | G2 schlechtester |
-|---|---|---|---|---|
-| Baseline | 17 / 36 | 2 / 36 | 1 / 36 | 1 / 36 |
-| Prompt-only | 19 / 36 | 2 / 36 | **35 / 36** | 0 / 36 |
-| v2-Finetune | **0 / 36** | **32 / 36** | **0 / 36** | **35 / 36** |
-
-Beim schlechtesten Text stimmten beide Gutachter in 31 von 36 Fällen überein.
-Der Finetune ist der einzige Arm, den kein Gutachter je vorne sah.
-
-### Objektive Messung
-
-Gerechnet mit `eval/run_holdout_eval.py` und `eval/structural_slop.py` gegen
-`data/eval_banlists/banned_slop_phrases.json`, Struktur-Referenz
-`dialog/literary`.
-
-| Arm | Banlist-Treffer / 1k Tokens | Struktur-Slop, Median | „maximal" | „absolut" | „inklusive" |
-|---|---|---|---|---|---|
-| Baseline | 38,64 | 56,1 | 1 | 5 | 9 |
-| Prompt-only | 19,20 | 57,3 | 0 | 1 | 7 |
-| v2-Finetune | **12,04** | **63,8** | **59** | **55** | **39** |
-
-Beim Struktur-Slop ist niedriger besser. Der Finetune gewinnt nur auf der
-Metrik, gegen die er trainiert wurde, und ist auf allen anderen der schlechteste
-Arm. Die Wortzahlen sind Substring-Zählungen ohne Groß-/Kleinschreibung über
-alle 36 Texte des jeweiligen Arms, nachrechenbar mit
-`sum(t.lower().count("maximal") for t in texts)`.
-
-### Die Tic-Verschiebung
-
-Das Training drückt nicht Slop, es verschiebt ihn. Gemessen über dieselben 36
-Texte, gleiche Zählmethode:
-
-| Wort | v1: Baseline → Finetune | v2: Baseline → Finetune |
+| Arm | Gutachter 1: bester / schlechtester | Gutachter 2: bester / schlechtester |
 |---|---|---|
-| „inklusive" | 14 → **558** | 9 → **39** |
-| „maximal" | 5 → 4 | 1 → **59** |
-| „absolut" | 6 → **19** | 5 → **55** |
+| Basismodell | 17 / 2 | 1 / 1 |
+| Basismodell + Prompt | 19 / 2 | **35** / 0 |
+| FTPO-Finetune | **0** / **32** | **0** / **35** |
 
-v1 kollabierte auf „inklusive". v2 hat diesen Tic gedämpft und dafür „maximal"
-und „absolut" hochgezogen. Das ist Whac-a-Mole, und es ist strukturell: eine
-feste Liste holt ein ausweichendes Modell nie ein.
+Beim schlechtesten Text waren sich beide in 31 von 36 Fällen einig. Ein unabhängiger dritter Lauf im Juni kam ebenfalls auf 0 von 36 beste und 32 von 36 schlechteste.
 
-Der Prompt, der gewonnen hat, steht in
-[`configs/antislop_prompt.md`](./configs/antislop_prompt.md). Er kostet nichts,
-braucht keine GPU und kein Training.
+### Was der Finetune trotzdem behoben hat
 
-## Empfehlung für Nachnutzer
+Der Weg von v1 zu v2 war kein Leerlauf. Eine erfundene Produktbehauptung fiel von 20 auf 0 von 36 Texten, sieben Textkollapse auf 0, sämtliche Phantasiewörter verschwanden. Das Rezept selbst ist tragfähig.
 
-**Nimm den Prompt, nicht das LoRA.** Slop in deutscher Website-Copy ist nach
-diesen Messungen ein Register- und Prompt-Problem, kein Gewichts-Problem.
+---
 
-## Bekannte Methodikfehler
+## Der Fehler im Upstream-Framework
 
-Diese Fehler stecken in den oben genannten Läufen. Wer die Ergebnisse
-weiterverwendet, sollte sie kennen.
+Das ist der Befund, der über dieses Projekt hinaus gilt. Wer `auto-antislop` benutzt, ist betroffen, unabhängig von der Sprache.
 
-- **Die Chosen-Quota im Upstream-Framework ist toter Code.** `tgt_chosen` wird in
-  `vendor/auto-antislop/utils/dataset_helpers.py:127` berechnet und danach nur
-  noch geloggt (Zeilen 131, 136, 137), sie filtert nichts. Folge: „ inklusive"
-  war laut Trainingslog 218 Mal Chosen-Token, obwohl das Framework selbst einen
-  Deckel von 93 errechnet hatte. Der Tic wurde antrainiert, nicht emergent. Das
-  ist ein Fehler im Upstream-Code von Sam Paech, nicht in diesem Repo. Der
-  Vendor-Baum liegt nicht hier, siehe [`vendor/README.md`](./vendor/README.md).
-- **Die früher berichtete 92-Prozent-Reduktion ist zirkulär und nicht
-  reproduzierbar.** Gemessen wurde gegen dieselbe Banlist, gegen die trainiert
-  wurde. Eine Nachrechnung mit demselben Code auf denselben Dateien ergibt rund
-  66 Prozent (`data/eval_raven_compare_broad_t0.7.json`: 25,12 auf 8,43 Treffer
-  je 1000 Tokens). Der Report `data/eval_holdout_report.json` ist nicht
-  versioniert, die ursprüngliche Zahl also nicht nachprüfbar.
-- **Kein Validierungssplit.** `vendor/auto-antislop/core/finetuning.py:829`
-  übergibt nur `train_dataset`, gestoppt wurde per `ThresholdStop("chosen_win", …)`
-  in Zeile 875, also auf dem Trainingssignal selbst. `chosen_win` schwankt
-  zwischen aufeinanderfolgenden Log-Events stärker als der Unterschied zwischen
-  der v1- und der v2-Einstellung (0,86 gegen 0,78). Der Schwellwert trennt damit
-  weniger, als das Rauschen breit ist.
-- **Der Capability-Beleg ist zu klein.** GSM8K 87 auf 86 Prozent bei n=100
-  (`data/eval_capability.json`) ist ein einziger Fall Unterschied und liegt im
-  Rauschen. Die Aussage „FTPO beschädigt die Fähigkeiten nicht" ist damit nicht
-  belegt, nur nicht widerlegt.
-- **Konstruktlücke.** Slop ist semantisch definiert, also eine Eigenschaft von
-  Aussagen. FTPO greift auf einem einzelnen Token. Von den sechs Slop-Klassen,
-  die wir unterschieden haben, erfasst das Verfahren zwei. Struktureller Slop
-  wurde nur gemessen, nie als Trainingssignal verdrahtet, und er hat sich durch
-  das Training verschlechtert (56,1 auf 63,8, siehe Tabelle oben).
-- **Der ursprüngliche Prompt-only-Arm existierte nicht.** Die Datei
-  `data/eval_raven_compare_broad_t0.7_promptonly.json` enthält in allen 36 Fällen
-  byteidentische Kopien der Baseline-Texte, der Arm wurde nie generiert. Alle
-  Prompt-only-Zahlen oben stammen aus dem Nachlauf vom 2026-09-04, siehe
-  Reproduktion.
+Der Backtracking-Sampler wählt beim Zurückspringen eine Alternative aus den 20 wahrscheinlichsten Folgetokens. Bei deutscher Werbesprache ist diese Menge klein und immer dieselbe. Im Trainingsprotokoll steht, welches Wort wie oft als Alternative gewählt wurde. Ganz oben, 218 Mal: `inklusive`.
 
-## Wo man ansetzen sollte
+Der Tic ist also nicht emergent. Er wurde antrainiert.
 
-Drei konkrete Einstiegspunkte, in dieser Reihenfolge:
+Dagegen gibt es eine eingebaute Obergrenze. Sie wird berechnet und für `inklusive` auf 93 gesetzt, drei Zeilen später ins Protokoll geschrieben, und danach nie angewendet:
 
-1. **Die tote Bremse reparieren.** Die Chosen-Quota tatsächlich anwenden, statt
-   sie nur zu loggen. Ohne das trainiert man den Tic mit, den man wegtrainieren
-   will.
-2. **Gegen eine Held-out-Liste messen.** Die Trainings-Banlist und die
-   Eval-Banlist trennen. Solange beide identisch sind, misst jede Zahl nur, ob
-   das Training angekommen ist.
-3. **Den Prompt als Kontrollarm ernst nehmen.** Ein Finetune muss den
-   System-Prompt schlagen, sonst ist er die teurere Variante des Gleichen. In
-   diesem Projekt hat er ihn nicht geschlagen.
+```
+utils/dataset_helpers.py:127   tgt_chosen = {...}      # berechnet
+utils/dataset_helpers.py:131   logger.info(...)        # geloggt
+utils/dataset_helpers.py:136   logger.info(...)        # geloggt
+                               # und das war es
+```
 
-Wenn du an der Trainings-Ebene weiterarbeiten willst: eine feste Banlist hat
-eine Decke, die man nicht wegtrainiert. Zwei Richtungen, die diese Decke
-angreifen, beide hier nicht getestet:
+`tgt_chosen` filtert keine einzige Zeile. Die Bremse ist verbaut, wird angezeigt, und war nie mit den Rädern verbunden.
 
-- **Dynamisches Frequenz-Anomalie-Ziel** statt eingefrorener Liste. Bestrafe,
-  was gegenüber einem menschlichen Referenzkorpus zur Laufzeit
-  überrepräsentiert ist. Dann wandert das Ziel mit, wenn das Modell ausweicht.
-- **Multi-Amateur Contrastive Decoding.** Gegen die Logits eines absichtlich
-  sloppy „Amateur"-Modells decodieren. Training-frei, wirkt zur Inferenzzeit.
+---
+
+## Was das für dich heißt
+
+**Du willst bessere deutsche Copy.** Nimm den Prompt. Er kostet nichts, braucht keine GPU und war in unserer Messung der stärkste Arm.
+
+**Du willst die Methode weitertreiben.** Nimm die Baseline, den Spread-Diskriminator und die Eval-Harness. Das sind die Teile, die tragen. Drei Ansatzpunkte in der Reihenfolge ihrer Wirkung:
+
+1. **Die tote Bremse reparieren.** Die berechnete Chosen-Quota anwenden. Fünf Zeilen, trifft die Ursache direkt.
+2. **Gegen eine Liste messen, die das Training nicht kannte.** Ein zweiter Profiling-Lauf liefert sie. Ohne das misst jede Zahl sich selbst.
+3. **Den Prompt als Kontrollarm ernst nehmen.** Der billigste Arm gehört an den Anfang, nicht ans Ende. Reicht er, hat sich die Trainingsfrage erledigt.
+
+**Du willst es grundsätzlich anders lösen.** Eine feste Liste ist eine Aufzählung, Slop ist eine Häufungs-Eigenschaft. Zwei Richtungen bieten sich an: ein dynamisches Frequenz-Anomalie-Ziel, das sich bei jedem Schritt neu gegen die Baseline-Verteilung misst, oder Multi-Amateur Contrastive Decoding, das ganz ohne Training auskommt und gegen die Logits eines absichtlich schlecht schreibenden Zweitmodells dekodiert.
+
+---
 
 ## Was im Repo liegt
 
 ```
-JOURNEY.md              Projekttagebuch, sechs Sessions, inklusive der Fehlerkorrektur
+scripts/baseline.py          Lineal destillieren (das Herzstück)
+scripts/build_banlist.py     Branchen-Spread-Diskriminator
+scripts/build_prompts.py     Prompt-Grid über 15 Branchen
+modal_app.py                 Generierung, FTPO-Training, Merge, HF-Upload
+eval/run_holdout_eval.py     Mehr-Arm-Vergleich mit allen Metriken
+eval/structural_slop.py      Nominalstil, Passiv, Satzbau
 configs/antislop_prompt.md   der Prompt, der gewonnen hat
-configs/de_extra_bans.json   116 kuratierte DE-Slop-Ngrams + 38 Surface-Seeds
-configs/copy_prompts/        Subjekte, Copy-Typen, Töne für die Prompt-Generierung
-scripts/baseline.py          baut das deutsche Human-n-gram-Profil (Stufe 0)
-scripts/build_prompts.py     erzeugt das Prompt-Grid für die Profiling-Phase
-scripts/build_banlist.py     Slop-Kandidaten aus den Generierungen, nach Branchen-Spread
-scripts/deploy_verda.py      vLLM-Serverless-Deploy des Merges
-scripts/generate_verda.py    Copy-Harness gegen den Endpoint
-modal_app.py                 Modal-Pipeline: Generierung, FTPO-Training, Eval, Upload
-eval/run_holdout_eval.py     die Metriken oben
-eval/structural_slop.py      Struktur-Schicht (spaCy): Nominalstil, Passiv, Satzlänge
-eval/build_3way_demo.py      der Dreiwege-Lesetest als HTML
-docs/SERVING.md              Hosting des Merges, inklusive der Bringup-Fallen
-vendor/PATCHES-DE.md         jede Änderung an Paechs Code, mit Datei und Zeile
+configs/de_extra_bans.json   handkuratierte Banlist
+docs/stufe-0-baseline.md     Abnahme-Dokumentation des Korpus
+docs/SERVING.md              Deploy auf einem vLLM-Endpoint
+JOURNEY.md                   Projekttagebuch, sechs Sessions, alle Sackgassen
 ```
 
-`vendor/auto-antislop/` ist **nicht** Teil dieses Repos. Wie du es dir holst und
-auf Deutsch patchst, steht in [`vendor/README.md`](./vendor/README.md).
+`data/` ist bewusst nicht eingecheckt: Korpora, Frequenzprofil und Eval-Ausgaben sind groß und teils lizenzbehaftet. `scripts/baseline.py` baut das Profil neu.
 
-Dieses Repo auf GitHub trägt einen einzelnen Veröffentlichungs-Commit. Die
-vollständige Entwicklungshistorie über 92 Commits liegt beim Autor und ist hier
-nicht enthalten, weil einzelne dieser Commits den Upstream-Code von Sam Paech
-einbringen, der keine Lizenz trägt und deshalb nicht weitergegeben werden darf.
-Inhaltlich bildet [`JOURNEY.md`](./JOURNEY.md) den gesamten Verlauf ab.
+Dieses Repo trägt einen einzelnen Veröffentlichungs-Commit. Die vollständige Entwicklungshistorie über 92 Commits liegt beim Autor; `JOURNEY.md` bildet sie inhaltlich ab. Grund für den Schnitt ist der Vendor-Code, siehe Lizenzen.
 
-## Reproduktion
-
-```bash
-uv sync                                        # Python >= 3.12, spaCy-DE-Modell kommt mit
-uv run python scripts/build_prompts.py         # -> data/prompts_de.jsonl (deterministisch)
-uv run python scripts/build_eval_prompts.py    # -> data/eval_raven_prompts.jsonl
-uv run python scripts/baseline.py              # -> data/baseline/human_writing_profile_de.json
-uv run python eval/run_holdout_eval.py         # -> data/eval_holdout_report.json
-uv run python eval/build_3way_demo.py          # -> data/eval_3way_demo.html
-```
-
-Training und Generierung laufen über `modal_app.py` (Modal-Account nötig,
-Entrypoints `smoke`, `eval_compare`, `capability_compare`, `publish`).
-
-`eval/run_holdout_eval.py` vergleicht in seiner ausgelieferten Form nur Baseline
-gegen Finetune. Für die Dreiwege-Tabelle oben ruft man dieselbe Funktion
-`_side(texts, phrases, ref_lively)` ein drittes Mal mit den Prompt-only-Texten
-auf.
-
-### Den Prompt-only-Arm selbst erzeugen
-
-Der Arm liegt als `data/eval_raven_compare_broad_t0.7_promptonly_rerun.json` vor,
-`data/` ist aber gitignored. So erzeugst du ihn:
-
-- **Modell:** `google/gemma-3-12b-it`, ohne Adapter, ohne Merge.
-- **Endpoint:** OpenAI-kompatible Chat-Completions-API eines beliebigen
-  Hosters. Der Lauf vom 2026-09-04 nutzte DeepInfra.
-- **System-Prompt:** wörtlich der Inhalt von
-  [`configs/antislop_prompt.md`](./configs/antislop_prompt.md), unverändert.
-- **User-Prompts:** das Feld `prompt` aus den 36 Zeilen von
-  `data/eval_raven_prompts_broad.jsonl`, in Dateireihenfolge.
-- **Sampling:** `temperature = 0.7`, `seed = 1234 + idx` mit `idx` als
-  Zeilenindex ab 0.
-- **Ausgabeformat:** JSON-Liste mit 36 Objekten, Schlüssel `id`, `copy_type`,
-  `tone`, `length`, `promptonly`. Die `id` muss zu
-  `data/eval_raven_compare_broad_t0.7_v2.json` passen, sonst lassen sich die Arme
-  nicht paaren.
-
-Gegenprobe, dass der Arm wirklich generiert wurde und nicht wieder die Baseline
-enthält:
-
-```python
-import json
-v2 = {e["id"]: e["baseline"] for e in json.load(open("data/eval_raven_compare_broad_t0.7_v2.json"))}
-po = json.load(open("data/eval_raven_compare_broad_t0.7_promptonly_rerun.json"))
-print(sum(1 for e in po if v2.get(e["id"]) == e["promptonly"]), "von", len(po), "identisch")
-```
-
-Erwartet wird `0 von 36 identisch`. Die alte Datei ohne `_rerun` liefert hier
-`36 von 36` und ist der oben beschriebene Fehler.
-
-## Was fehlt und wie du es dir baust
-
-`data/` ist gitignored. Es enthält Korpora, das n-gram-Profil und die
-Generierungs-Ergebnisse, teils groß, teils lizenzbehaftet. Was die Skripte
-erwarten und woher es kommt:
-
-| Datei | Gebraucht von | Woher |
-|---|---|---|
-| `data/raw/de_top_sentences.csv`, `de_top_words.csv` | `scripts/baseline.py`, `eval/check_candidates.py` | manuell laden von [orgtre/top-open-subtitles-sentences](https://github.com/orgtre/top-open-subtitles-sentences) |
-| `data/baseline/human_writing_profile_de.json` | `modal_app.py`, `eval/check_candidates.py` | `scripts/baseline.py` baut es. German Commons (`coral-nlp/german-commons`) streamt automatisch von HF, die OpenSubtitles-CSV oben muss vorher liegen. Rund 50 MB, Laufzeit im Stunden-Bereich. |
-| `data/prompts_de.jsonl` | `modal_app.py` | `scripts/build_prompts.py`, deterministisch reproduzierbar |
-| `data/eval_raven_prompts.jsonl` | Eval-Generierung | `scripts/build_eval_prompts.py` |
-| `data/samples_full.jsonl` | `scripts/build_banlist.py` | fällt beim Generierungs-Lauf an, GPU-Kosten. Das kuratierte Ergebnis liegt bereits getrackt in `configs/de_extra_bans.json`, du brauchst den Lauf also nur, wenn du die Banlist neu bauen willst. |
-| `data/eval_raven_compare_broad_t0.7*.json` | `eval/run_holdout_eval.py`, `eval/build_3way_demo.py` | `modal_app.py eval_compare`, GPU-Kosten. Ohne diese Dateien laufen die beiden Eval-Skripte nicht, die Zahlen oben also nicht nachrechenbar. |
-| `data/eval_raven_compare_broad_t0.7_promptonly_rerun.json` | `eval/build_3way_demo.py` | selbst erzeugen, siehe Reproduktion. Kein Training nötig, nur API-Kosten für 36 Generierungen. |
-
-Das trainierte Modell selbst (`PhilflowIO/gemma-3-12b-it-antislop-de`) liegt in
-einem privaten HF-Repo und ist nicht Teil dieser Veröffentlichung. Gemessen an
-dem Ergebnis oben ist das kein Verlust.
+---
 
 ## Lizenzen
 
-Drei verschiedene Rechtslagen in einem Verzeichnis, sauber getrennt:
+| Teil | Lizenz |
+|---|---|
+| Code in diesem Repo | Apache 2.0, siehe [`LICENSE`](./LICENSE) |
+| Basismodell und der Merge | [Gemma Terms of Use](https://ai.google.dev/gemma/terms) und [Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy), **nicht** Apache |
+| `sam-paech/auto-antislop`, `antislop-vllm` | keine Lizenzdatei im Upstream, daher nicht mitveröffentlicht. Siehe [`vendor/README.md`](./vendor/README.md) |
+| `sam-paech/slop-forensics` | MIT |
 
-**Eigener Code: Apache-2.0.** Alles in `scripts/`, `eval/`, `configs/`,
-`modal_app.py` und die Dokumentation. Siehe [`LICENSE`](./LICENSE),
-Copyright 2026 Philipp Lutje.
+---
 
-**Basismodell und Merge: Gemma Terms of Use.** `google/gemma-3-12b-it` steht
-unter den [Gemma Terms of Use](https://ai.google.dev/gemma/terms), nicht unter
-Apache-2.0. Jedes davon abgeleitete Gewicht, also auch unser FTPO-Merge, erbt
-diese Bedingungen samt der
-[Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy). Wer
-das Modell weiterverwendet, ist an die Gemma-Bedingungen gebunden, nicht an
-Apache-2.0.
+## Dank
 
-**Upstream-Pipeline: Sam Paech.** `auto-antislop` samt Submodulen ist nicht
-unser Code und liegt nicht in diesem Repo. Im eingefrorenen Stand vom 2026-06-07
-trug nur `slop-forensics` eine Lizenzdatei: MIT, Copyright (c) 2025 Sam Paech.
-Für `auto-antislop` und `antislop-vllm` lag keine Lizenzdatei im übernommenen
-Baum, prüfe sie im Upstream-Repo. Details in
-[`vendor/README.md`](./vendor/README.md).
+Gebaut auf der Arbeit von **[Sam Paech](https://github.com/sam-paech)**: [`auto-antislop`](https://github.com/sam-paech/auto-antislop) für Pipeline und FTPO, [`antislop-sampler`](https://github.com/sam-paech/antislop-sampler) für das Backtracking, [`slop-forensics`](https://github.com/sam-paech/slop-forensics) für die register-relative Baseline-Logik. Die Methode ist seine, die deutsche Portierung und die Befunde hier sind meine.
+
+Paper: **Antislop: A Comprehensive Framework for Identifying and Eliminating Repetitive Patterns in Language Models**, [arXiv:2510.15061](https://arxiv.org/abs/2510.15061).
+
+Korpus: **German Commons** (`coral-nlp/german-commons`, ODC-BY) und **OpenSubtitles2018-DE** über [`orgtre/top-open-subtitles-sentences`](https://github.com/orgtre/top-open-subtitles-sentences).
+
+---
+
+**Fragen oder Befunde?** [GitHub-Issue aufmachen](https://github.com/PhilflowIO/antislop-de/issues)
+
+Die vierteilige Serie über den Bau: [philflow.io/blog](https://philflow.io/blog/anti-slop-4-whac-a-mole)
+
+---
+
+*Gebaut, damit deutsche KI-Texte nicht klingen wie deutsche KI-Texte*
